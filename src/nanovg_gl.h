@@ -1654,7 +1654,7 @@ GLuint nvglImageHandleGLES3(NVGcontext* ctx, int image)
 {
 	GLNVGcontext* gl = (GLNVGcontext*)nvgInternalParams(ctx)->userPtr;
 	GLNVGtexture* tex = glnvg__findTexture(gl, image);
-	return tex->tex;
+	return tex? tex->tex: -1;
 }
 
 #endif /* NANOVG_GL_IMPLEMENTATION */
