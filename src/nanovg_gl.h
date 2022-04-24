@@ -360,7 +360,7 @@ static GLNVGtexture* glnvg__allocTexture(GLNVGcontext* gl)
 		if (gl->ntextures+1 > gl->ctextures) {
 			GLNVGtexture* textures;
 			int ctextures = glnvg__maxi(gl->ntextures+1, 4) +  gl->ctextures/2; // 1.5x Overallocate
-			textures = (GLNVGtexture*)realloc(gl->textures, sizeof(GLNVGtexture)*ctextures);
+			textures = (GLNVGtexture*)realloc(gl->textures, sizeof(GLNVGtexture)*(size_t)ctextures);
 			if (textures == NULL) return NULL;
 			gl->textures = textures;
 			gl->ctextures = ctextures;
@@ -496,7 +496,7 @@ static void glnvg__getUniforms(GLNVGshader* shader)
 	shader->loc[GLNVG_LOC_TEX] = glGetUniformLocation(shader->prog, "tex");
 
 #if NANOVG_GL_USE_UNIFORMBUFFER
-	shader->loc[GLNVG_LOC_FRAG] = glGetUniformBlockIndex(shader->prog, "frag");
+	shader->loc[GLNVG_LOC_FRAG] = (GLint)glGetUniformBlockIndex(shader->prog, "frag");
 #else
 	shader->loc[GLNVG_LOC_FRAG] = glGetUniformLocation(shader->prog, "frag");
 #endif
@@ -507,7 +507,7 @@ static int glnvg__renderCreateTexture(void* uptr, int type, int w, int h, int im
 static int glnvg__renderCreate(void* uptr)
 {
 	GLNVGcontext* gl = (GLNVGcontext*)uptr;
-	int align = 4;
+	GLint align = 4;
 
 	// TODO: mediump float may not be enough for GLES2 in iOS.
 	// see the following discussion: https://github.com/memononen/nanovg/issues/46
@@ -698,11 +698,11 @@ static int glnvg__renderCreate(void* uptr)
 
 #if NANOVG_GL_USE_UNIFORMBUFFER
 	// Create UBOs
-	glUniformBlockBinding(gl->shader.prog, gl->shader.loc[GLNVG_LOC_FRAG], GLNVG_FRAG_BINDING);
+	glUniformBlockBinding(gl->shader.prog, (GLuint)gl->shader.loc[GLNVG_LOC_FRAG], GLNVG_FRAG_BINDING);
 	glGenBuffers(1, &gl->fragBuf);
 	glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &align);
 #endif
-	gl->fragSize = sizeof(GLNVGfragUniforms) + align - sizeof(GLNVGfragUniforms) % align;
+	gl->fragSize = sizeof(GLNVGfragUniforms) + (size_t)align - sizeof(GLNVGfragUniforms) % (size_t)align;
 
 	// Some platforms does not allow to have samples to unset textures.
 	// Create empty one which is bound when there's no texture specified.
@@ -1221,7 +1221,7 @@ static void glnvg__renderFlush(void* uptr)
 		glBindVertexArray(gl->vertArr);
 #endif
 		glBindBuffer(GL_ARRAY_BUFFER, gl->vertBuf);
-		glBufferData(GL_ARRAY_BUFFER, gl->nverts * sizeof(NVGvertex), gl->verts, GL_STREAM_DRAW);
+		glBufferData(GL_ARRAY_BUFFER, (size_t)gl->nverts * sizeof(NVGvertex), gl->verts, GL_STREAM_DRAW);
 		glEnableVertexAttribArray(0);
 		glEnableVertexAttribArray(1);
 		glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(NVGvertex), (const GLvoid*)(size_t)0);
@@ -1282,7 +1282,7 @@ static GLNVGcall* glnvg__allocCall(GLNVGcontext* gl)
 	if (gl->ncalls+1 > gl->ccalls) {
 		GLNVGcall* calls;
 		int ccalls = glnvg__maxi(gl->ncalls+1, 128) + gl->ccalls/2; // 1.5x Overallocate
-		calls = (GLNVGcall*)realloc(gl->calls, sizeof(GLNVGcall) * ccalls);
+		calls = (GLNVGcall*)realloc(gl->calls, sizeof(GLNVGcall) * (size_t)ccalls);
 		if (calls == NULL) return NULL;
 		gl->calls = calls;
 		gl->ccalls = ccalls;
@@ -1298,7 +1298,7 @@ static int glnvg__allocPaths(GLNVGcontext* gl, int n)
 	if (gl->npaths+n > gl->cpaths) {
 		GLNVGpath* paths;
 		int cpaths = glnvg__maxi(gl->npaths + n, 128) + gl->cpaths/2; // 1.5x Overallocate
-		paths = (GLNVGpath*)realloc(gl->paths, sizeof(GLNVGpath) * cpaths);
+		paths = (GLNVGpath*)realloc(gl->paths, sizeof(GLNVGpath) * (size_t)cpaths);
 		if (paths == NULL) return -1;
 		gl->paths = paths;
 		gl->cpaths = cpaths;
@@ -1314,7 +1314,7 @@ static int glnvg__allocVerts(GLNVGcontext* gl, int n)
 	if (gl->nverts+n > gl->cverts) {
 		NVGvertex* verts;
 		int cverts = glnvg__maxi(gl->nverts + n, 4096) + gl->cverts/2; // 1.5x Overallocate
-		verts = (NVGvertex*)realloc(gl->verts, sizeof(NVGvertex) * cverts);
+		verts = (NVGvertex*)realloc(gl->verts, sizeof(NVGvertex) * (size_t)cverts);
 		if (verts == NULL) return -1;
 		gl->verts = verts;
 		gl->cverts = cverts;
@@ -1330,7 +1330,7 @@ static int glnvg__allocFragUniforms(GLNVGcontext* gl, int n)
 	if (gl->nuniforms+n > gl->cuniforms) {
 		unsigned char* uniforms;
 		int cuniforms = glnvg__maxi(gl->nuniforms+n, 128) + gl->cuniforms/2; // 1.5x Overallocate
-		uniforms = (unsigned char*)realloc(gl->uniforms, structSize * cuniforms);
+		uniforms = (unsigned char*)realloc(gl->uniforms, (size_t)(structSize * cuniforms));
 		if (uniforms == NULL) return -1;
 		gl->uniforms = uniforms;
 		gl->cuniforms = cuniforms;
@@ -1390,13 +1390,13 @@ static void glnvg__renderFill(void* uptr, NVGpaint* paint, NVGcompositeOperation
 		if (path->nfill > 0) {
 			copy->fillOffset = offset;
 			copy->fillCount = path->nfill;
-			memcpy(&gl->verts[offset], path->fill, sizeof(NVGvertex) * path->nfill);
+			memcpy(&gl->verts[offset], path->fill, sizeof(NVGvertex) * (size_t)path->nfill);
 			offset += path->nfill;
 		}
 		if (path->nstroke > 0) {
 			copy->strokeOffset = offset;
 			copy->strokeCount = path->nstroke;
-			memcpy(&gl->verts[offset], path->stroke, sizeof(NVGvertex) * path->nstroke);
+			memcpy(&gl->verts[offset], path->stroke, sizeof(NVGvertex) * (size_t)path->nstroke);
 			offset += path->nstroke;
 		}
 	}
@@ -1463,7 +1463,7 @@ static void glnvg__renderStroke(void* uptr, NVGpaint* paint, NVGcompositeOperati
 		if (path->nstroke) {
 			copy->strokeOffset = offset;
 			copy->strokeCount = path->nstroke;
-			memcpy(&gl->verts[offset], path->stroke, sizeof(NVGvertex) * path->nstroke);
+			memcpy(&gl->verts[offset], path->stroke, sizeof(NVGvertex) * (size_t)path->nstroke);
 			offset += path->nstroke;
 		}
 	}
@@ -1509,7 +1509,7 @@ static void glnvg__renderTriangles(void* uptr, NVGpaint* paint, NVGcompositeOper
 	if (call->triangleOffset == -1) goto error;
 	call->triangleCount = nverts;
 
-	memcpy(&gl->verts[call->triangleOffset], verts, sizeof(NVGvertex) * nverts);
+	memcpy(&gl->verts[call->triangleOffset], verts, sizeof(NVGvertex) * (size_t)nverts);
 
 	// Fill shader
 	call->uniformOffset = glnvg__allocFragUniforms(gl, 1);
